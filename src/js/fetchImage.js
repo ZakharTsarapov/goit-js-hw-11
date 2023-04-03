@@ -1,18 +1,18 @@
 import axios from 'axios';
 
-const API_KEY = '34888063-32f27f7df2cbfc9058681e962';
-const BASE_URL = 'https://pixabay.com/api/';
+const API_KEY = '34961541-6d5c00c2050e86bf56b399f26';
+const URL = 'https://pixabay.com/api/';
 
-export class PixabayApi {
+export class ImageApi {
   constructor() {
     this.query = '';
     this.page = 1;
     this.perPage = 40;
   }
 
-  async fetchPhoto() {
+  async fetchImage() {
     try {
-      return await axios.get(`${BASE_URL}`, {
+      return await axios.get(`${URL}`, {
         params: {
           key: API_KEY,
           q: this.query,

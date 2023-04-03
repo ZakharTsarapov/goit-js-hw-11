@@ -1,4 +1,4 @@
-function renderGallery(images) {
+function markupGallery(images) {
   const markup = images
     .map(image => {
       const {
@@ -35,4 +35,4 @@ function renderGallery(images) {
   return markup;
 }
 
-export { renderGallery };
+export { markupGallery };

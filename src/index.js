@@ -1,26 +1,28 @@
-import { PixabayApi } from './fetchData';
+import { ImageApi } from './js/fetchImage';
 import Notiflix from 'notiflix';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
-import { renderGallery } from './renderGallery';
+import { markupGallery } from './js/template';
 
-const searchForm = document.querySelector('.search-form');
-const galleryContainer = document.querySelector('.gallery');
-const loadMoreBtn = document.querySelector('.load-more');
-const inputEl = document.querySelector('input[name="searchQuery"]');
+const refs = {
+  searchForm: document.querySelector('#search-form'),
+  galleryContainer: document.querySelector('.gallery'),
+  loadMoreBtn: document.querySelector('.load-more'),
+  inputEl: document.querySelector('input[name="searchQuery"]')
+};
 
 let lightbox = null;
-const pixabayApi = new PixabayApi();
+const imageApi = new ImageApi();
 
-searchForm.addEventListener('submit', onSearchFormSubmit);
-loadMoreBtn.addEventListener('click', onLoadMoreClick);
+refs.searchForm.addEventListener('submit', onSearch);
+refs.loadMoreBtn.addEventListener('click', onLoadMoreClick);
 
-async function onSearchFormSubmit(event) {
+async function onSearch(event) {
   event.preventDefault();
 
-  pixabayApi.query = event.target.elements.searchQuery.value.trim();
-  inputEl.value = '';
-  pixabayApi.resetPage();
+  imageApi.query = event.target.elements.searchQuery.value.trim();
+  refs.inputEl.value = '';
+  imageApi.resetPage();
 
   if (pixabayApi.query === '') {
     Notiflix.Notify.failure('Sorry, enter something in search line.');
@@ -30,7 +32,7 @@ async function onSearchFormSubmit(event) {
   }
 
   try {
-    const { data } = await pixabayApi.fetchPhoto();
+    const { data } = await imageApi.fetchImage();
     if (data.hits.length === 0) {
       Notiflix.Notify.failure(
         'Sorry, there are no images matching your search query. Please try again.'
@@ -40,7 +42,7 @@ async function onSearchFormSubmit(event) {
       return;
     }
     Notiflix.Notify.success(`Hooray! We found ${data.totalHits} images.`);
-    galleryContainer.innerHTML = renderGallery(data.hits);
+    refs.galleryContainer.innerHTML = markupGallery(data.hits);
     showLoadMoreBtn();
 
     lightbox = new SimpleLightbox('.gallery  a', {
@@ -50,7 +52,7 @@ async function onSearchFormSubmit(event) {
       captionPosition: 'bottom',
     });
 
-    if (data.totalHits <= pixabayApi.perPage) {
+    if (data.totalHits <= imageApi.perPage) {
       hideLoadMoreBtn();
     }
   } catch (error) {
@@ -59,45 +61,33 @@ async function onSearchFormSubmit(event) {
 }
 
 async function onLoadMoreClick() {
-  pixabayApi.incrementPage();
+  imageApi.incrementPage();
 
   try {
-    const { data } = await pixabayApi.fetchPhoto();
+    const { data } = await imageApi.fetchImage();
 
-    if (Math.ceil(data.totalHits / pixabayApi.perPage) === pixabayApi.page) {
+    if (Math.ceil(data.totalHits / imageApi.perPage) === imageApi.page) {
       hideLoadMoreBtn();
       Notiflix.Notify.info(
         "We're sorry, but you've reached the end of search results."
       );
     }
 
-    galleryContainer.insertAdjacentHTML('beforeend', renderGallery(data.hits));
+    refs.galleryContainer.insertAdjacentHTML('beforeend', markupGallery(data.hits));
     lightbox.refresh();
-    smoothScroll();
   } catch (error) {
     console.log(error);
   }
 }
 
 function clearMarkup() {
-  galleryContainer.innerHTML = '';
-}
-
-function smoothScroll() {
-  const { height: cardHeight } = document
-    .querySelector('.gallery')
-    .firstElementChild.getBoundingClientRect();
-
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: 'smooth',
-  });
+  refs.galleryContainer.innerHTML = '';
 }
 
 function hideLoadMoreBtn() {
-  loadMoreBtn.classList.add('is-hidden');
+  refs.loadMoreBtn.classList.add('is-hidden');
 }
 
 function showLoadMoreBtn() {
-  loadMoreBtn.classList.remove('is-hidden');
+  refs.loadMoreBtn.classList.remove('is-hidden');
 }
