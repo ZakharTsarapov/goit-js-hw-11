@@ -24,7 +24,7 @@ async function onSearch(event) {
   refs.inputEl.value = '';
   imageApi.resetPage();
 
-  if (pixabayApi.query === '') {
+  if (imageApi.query === '') {
     Notiflix.Notify.failure('Sorry, enter something in search line.');
     clearMarkup();
     hideLoadMoreBtn();
