@@ -1,138 +1,103 @@
+import { PixabayApi } from './fetchData';
 import Notiflix from 'notiflix';
-import axios from 'axios';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
+import { renderGallery } from './renderGallery';
 
-const refs = {
-  searchForm: document.querySelector('#search-form'),
-  galleryContainer: document.querySelector('.gallery'),
-  loadMoreBtn: document.querySelector('.load-more'),
-};
+const searchForm = document.querySelector('.search-form');
+const galleryContainer = document.querySelector('.gallery');
+const loadMoreBtn = document.querySelector('.load-more');
+const inputEl = document.querySelector('input[name="searchQuery"]');
 
-refs.searchForm.addEventListener('submit', onSearch);
-refs.loadMoreBtn.addEventListener('click', onLoadMore);
+let lightbox = null;
+const pixabayApi = new PixabayApi();
 
-let searchQuery = '';
-let totalHits = 40;
-const API_KEY = '34961541-6d5c00c2050e86bf56b399f26';
-let page = 1;
-const per_page = 40;
-const simpleLightbox = new SimpleLightbox('.gallery a', {
-  captionSelector: 'img',
-  captionsData: 'alt',
-  captionPosition: 'bottom',
-  captionDelay: 250,
-  scrollZoom: false,
-});
+searchForm.addEventListener('submit', onSearchFormSubmit);
+loadMoreBtn.addEventListener('click', onLoadMoreClick);
 
-function onSearch(e) {
-  e.preventDefault();
-  searchQuery = e.target.searchQuery.value.trim();
-  resetMarkup();
-  if (!searchQuery) {
+async function onSearchFormSubmit(event) {
+  event.preventDefault();
+
+  pixabayApi.query = event.target.elements.searchQuery.value.trim();
+  inputEl.value = '';
+  pixabayApi.resetPage();
+
+  if (pixabayApi.query === '') {
+    Notiflix.Notify.failure('Sorry, enter something in search line.');
+    clearMarkup();
+    hideLoadMoreBtn();
     return;
   }
-  fetchPictures(searchQuery);
-  e.target.reset();
-}
 
-function resetMarkup() {
-  refs.galleryContainer.innerHTML = '';
-}
-
-function renderMarkup(images) {
-  page += 1;
-
-  totalHits = images.data.totalHits;
-  if (images.data.hits.length === 0) {
-    Notiflix.Notify.failure(
-      'Sorry, there are no images matching your search query. Please try again.'
-    );
-  }
-
-  const createMarkup = images.data.hits
-    .map(
-      ({
-        comments,
-        downloads,
-        largeImageURL,
-        webformatURL,
-        views,
-        tags,
-        likes,
-      }) => {
-        const markup = `
-        <div class="gallery photo-card">
-            <a href="${largeImageURL}">
-            <img src="${webformatURL}" alt="${tags}" loading="lazy" />
-            </a>
-            <div class="info">
-                <p class="info-item">
-                <b>Likes:<br> ${likes}</b>
-                </p>
-                <p class="info-item">
-                <b>Views:<br> ${views}</b>
-                </p>
-                <p class="info-item">
-                <b>Comments:<br> ${comments}</b>
-                </p>
-                <p class="info-item">
-                <b>Downloads:<br> ${downloads}</b>
-                </p>
-            </div>
-            </div>
-        `;
-        return markup;
-      }
-    )
-    .join('');
-
-  refs.galleryContainer.insertAdjacentHTML('beforeend', createMarkup);
-
-  refs.loadMoreBtn.classList.remove('visually-hidden');
-
-  simpleLightbox.refresh();
-
-  if (images.data.hits.length < 40) {
-    refs.loadMoreBtn.classList.add('visually-hidden');
-  }
-}
-
-function onFetchError() {
-  Notiflix.Notify.failure('u made a mistake');
-}
-
-function onLoadMore() {
-  refs.loadMoreBtn.classList.add('visually-hidden');
-  fetchPictures(searchQuery);
-  searchQuery = '';
-  if (totalHits - page * per_page > 0) {
-    Notiflix.Notify.success(
-      `Hooray! We found ${totalHits - page * per_page} images.`
-    );
-  } else if (totalHits - page * per_page < 40) {
-    Notiflix.Notify.warning(
-      'We`re sorry, but you`ve reached the end of search results.'
-    );
-  }
-}
-
-async function fetchPictures(searchQuery) {
   try {
-    const response = await axios.get('https://pixabay.com/api/', {
-      params: {
-        key: API_KEY,
-        q: searchQuery,
-        per_page: per_page,
-        page: page,
-        safesearch: true,
-        orientation: 'horizontal',
-        image_type: 'photo',
-      },
+    const { data } = await pixabayApi.fetchPhoto();
+    if (data.hits.length === 0) {
+      Notiflix.Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
+      clearMarkup();
+      hideLoadMoreBtn();
+      return;
+    }
+    Notiflix.Notify.success(`Hooray! We found ${data.totalHits} images.`);
+    galleryContainer.innerHTML = renderGallery(data.hits);
+    showLoadMoreBtn();
+
+    lightbox = new SimpleLightbox('.gallery  a', {
+      captionDelay: 250,
+      scrollZoom: false,
+      captionsData: 'alt',
+      captionPosition: 'bottom',
     });
 
-    renderMarkup(response);
+    if (data.totalHits <= pixabayApi.perPage) {
+      hideLoadMoreBtn();
+    }
   } catch (error) {
-    onFetchError(error);
+    console.log(error);
   }
+}
+
+async function onLoadMoreClick() {
+  pixabayApi.incrementPage();
+
+  try {
+    const { data } = await pixabayApi.fetchPhoto();
+
+    if (Math.ceil(data.totalHits / pixabayApi.perPage) === pixabayApi.page) {
+      hideLoadMoreBtn();
+      Notiflix.Notify.info(
+        "We're sorry, but you've reached the end of search results."
+      );
+    }
+
+    galleryContainer.insertAdjacentHTML('beforeend', renderGallery(data.hits));
+    lightbox.refresh();
+    smoothScroll();
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+function clearMarkup() {
+  galleryContainer.innerHTML = '';
+}
+
+function smoothScroll() {
+  const { height: cardHeight } = document
+    .querySelector('.gallery')
+    .firstElementChild.getBoundingClientRect();
+
+  window.scrollBy({
+    top: cardHeight * 2,
+    behavior: 'smooth',
+  });
+}
+
+function hideLoadMoreBtn() {
+  loadMoreBtn.classList.add('is-hidden');
+}
+
+function showLoadMoreBtn() {
+  loadMoreBtn.classList.remove('is-hidden');
 }
