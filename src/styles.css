@@ -33,30 +33,22 @@ a {
     flex-direction: row;
     max-width: 100%;
     padding: 12px;
-    background-color: teal;
-    border: 3px solid whitesmoke;
-    border-radius: 4px;
     justify-content: center;
 }
 
 input {
     margin-right: 20px;
-    border: 2px solid rgb(59, 183, 245);
-    border-radius: 10px;
+    
     padding: 10px;
     width: 400px;
-    background-color: bisque;
-    color: teal;
     outline: none;
     font-size: 18px;
     text-align: center;
 }
 
 .submit {
-    background-color: bisque;
-    border-radius: 50%;
+    background-color: tomato;
     outline: none;
-    border: 3px solid rgb(59, 183, 245);
     margin-right: 20px;
     cursor: pointer;
 }
@@ -81,7 +73,6 @@ input {
 .load-more:hover,
 .load-more:focus {
     color: #0d1381;
-    background-color: whitesmoke;
 }
 
 .is-hidden {
@@ -90,7 +81,6 @@ input {
 
 .gallery {
     padding-top: 50px;
-
     list-style: none;
     display: flex;
     justify-content: center;
@@ -102,7 +92,6 @@ input {
 .photo-card {
     flex-basis: calc((100% - 30px) / 5);
     cursor: pointer;
-
     transition: scale 200ms linear;
 }
 
